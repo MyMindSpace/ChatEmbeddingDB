@@ -120,16 +120,16 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // @route   PUT /api/chat-embeddings/:id
-// @desc    Update chat embedding by ID
+// @desc    Replace chat embedding by ID (complete replacement)
 // @access  Private
-router.put('/:id', validate(updateChatEmbeddingSchema), async (req, res, next) => {
+router.put('/:id', validate(chatEmbeddingSchema), async (req, res, next) => {
   try {
     const chatEmbedding = await chatEmbeddingService.updateChatEmbedding(req.params.id, req.body);
     
     res.json({
       success: true,
       data: chatEmbedding,
-      message: 'Chat embedding updated successfully'
+      message: 'Chat embedding replaced successfully'
     });
   } catch (error) {
     if (error.message === 'Chat embedding not found') {
@@ -138,6 +138,22 @@ router.put('/:id', validate(updateChatEmbeddingSchema), async (req, res, next) =
         error: 'Chat embedding not found'
       });
     }
+    next(error);
+  }
+});
+
+// @route   PATCH /api/chat-embeddings/:id
+// @desc    Partially update chat embedding by ID
+// @access  Private
+router.patch('/:id', validate(updateChatEmbeddingSchema), async (req, res, next) => {
+  try {
+    // For partial updates, we'd need a different service method
+    // This would use findOneAndUpdate with $set for partial updates
+    return res.status(501).json({
+      success: false,
+      error: 'Partial updates (PATCH) not implemented. Use PUT for complete replacement.'
+    });
+  } catch (error) {
     next(error);
   }
 });

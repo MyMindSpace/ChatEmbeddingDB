@@ -65,6 +65,55 @@ const chatEmbeddingSchema = Joi.object({
   semantic_tags: Joi.array().items(Joi.string()).optional().default([]),
   emotion_context: emotionContextSchema.optional(),
   entities_mentioned: entitiesMentionedSchema.optional().default({ people: [], locations: [], organizations: [] }),
+  // New feature vector fields
+  feature_vector: Joi.array()
+    .items(Joi.number())
+    .length(90)
+    .required()
+    .messages({
+      'array.base': 'Feature vector must be an array of numbers',
+      'array.length': 'Feature vector must have exactly 90 dimensions',
+      'any.required': 'Feature vector is required'
+    }),
+  temporal_features: Joi.array()
+    .items(Joi.number())
+    .length(25)
+    .required()
+    .messages({
+      'array.base': 'Temporal features must be an array of numbers',
+      'array.length': 'Temporal features must have exactly 25 dimensions',
+      'any.required': 'Temporal features is required'
+    }),
+  emotional_features: Joi.array()
+    .items(Joi.number())
+    .length(20)
+    .required()
+    .messages({
+      'array.base': 'Emotional features must be an array of numbers',
+      'array.length': 'Emotional features must have exactly 20 dimensions',
+      'any.required': 'Emotional features is required'
+    }),
+  semantic_features: Joi.array()
+    .items(Joi.number())
+    .length(30)
+    .required()
+    .messages({
+      'array.base': 'Semantic features must be an array of numbers',
+      'array.length': 'Semantic features must have exactly 30 dimensions',
+      'any.required': 'Semantic features is required'
+    }),
+  user_features: Joi.array()
+    .items(Joi.number())
+    .length(15)
+    .required()
+    .messages({
+      'array.base': 'User features must be an array of numbers',
+      'array.length': 'User features must have exactly 15 dimensions',
+      'any.required': 'User features is required'
+    }),
+  // New metadata fields
+  feature_completeness: Joi.number().min(0).max(1).required(),
+  confidence_score: Joi.number().min(0).max(1).required(),
   temporal_context: temporalContextSchema.required()
 });
 
@@ -87,6 +136,45 @@ const updateChatEmbeddingSchema = Joi.object({
   semantic_tags: Joi.array().items(Joi.string()).optional(),
   emotion_context: emotionContextSchema.optional(),
   entities_mentioned: entitiesMentionedSchema.optional(),
+  // New feature vector fields (optional for updates)
+  feature_vector: Joi.array()
+    .items(Joi.number())
+    .length(90)
+    .optional()
+    .messages({
+      'array.length': 'Feature vector must have exactly 90 dimensions'
+    }),
+  temporal_features: Joi.array()
+    .items(Joi.number())
+    .length(25)
+    .optional()
+    .messages({
+      'array.length': 'Temporal features must have exactly 25 dimensions'
+    }),
+  emotional_features: Joi.array()
+    .items(Joi.number())
+    .length(20)
+    .optional()
+    .messages({
+      'array.length': 'Emotional features must have exactly 20 dimensions'
+    }),
+  semantic_features: Joi.array()
+    .items(Joi.number())
+    .length(30)
+    .optional()
+    .messages({
+      'array.length': 'Semantic features must have exactly 30 dimensions'
+    }),
+  user_features: Joi.array()
+    .items(Joi.number())
+    .length(15)
+    .optional()
+    .messages({
+      'array.length': 'User features must have exactly 15 dimensions'
+    }),
+  // New metadata fields (optional for updates)
+  feature_completeness: Joi.number().min(0).max(1).optional(),
+  confidence_score: Joi.number().min(0).max(1).optional(),
   temporal_context: temporalContextSchema.optional()
 });
 

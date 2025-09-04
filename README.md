@@ -10,6 +10,16 @@ This service manages chat embeddings with dual vector representations:
 
 Designed for sophisticated conversation analysis, emotion tracking, and semantic search across chat interactions.
 
+## ✨ Key Features
+
+- **Dual Vector Storage**: Primary (768D) and lightweight (384D) embeddings for flexible performance
+- **Rich Metadata**: Emotion analysis, entity extraction, temporal context, and feature vectors
+- **Advanced Search**: Vector similarity search with emotion and semantic filtering
+- **Complete Data Replacement**: REST-compliant PUT operations for complete entry replacement
+- **Auto-Collection Management**: Automatic AstraDB collection creation and indexing
+- **Comprehensive Validation**: Joi-based validation for all vector dimensions and data types
+- **Production Ready**: Docker deployment, health checks, and error handling
+
 ## � Quick Start
 
 ### Prerequisites
@@ -104,6 +114,13 @@ curl http://localhost:3000/health
     "locations": ["array", "of", "places"], 
     "organizations": ["array", "of", "orgs"]
   },
+  "feature_vector": [90 dimensions],
+  "temporal_features": [25 dimensions],
+  "emotional_features": [20 dimensions],
+  "semantic_features": [30 dimensions],
+  "user_features": [15 dimensions],
+  "feature_completeness": "float",
+  "confidence_score": "float",
   "temporal_context": {
     "hour_of_day": "integer",
     "day_of_week": "integer",
@@ -160,6 +177,13 @@ X-API-Key: your_api_key_here
     "locations": [],
     "organizations": ["university"]
   },
+  "feature_vector": [0.1, 0.2, ...90 numbers],
+  "temporal_features": [0.3, 0.4, ...25 numbers],
+  "emotional_features": [0.5, 0.6, ...20 numbers],
+  "semantic_features": [0.7, 0.8, ...30 numbers],
+  "user_features": [0.9, 0.1, ...15 numbers],
+  "feature_completeness": 0.95,
+  "confidence_score": 0.87,
   "temporal_context": {
     "hour_of_day": 14,
     "day_of_week": 1,
@@ -174,9 +198,68 @@ GET /api/chat-embeddings/550e8400-e29b-41d4-a716-446655440000
 X-API-Key: your_api_key_here
 ```
 
-#### Update Embedding
+#### Update Embedding - Complete Replacement (PUT)
+
+**Important**: PUT requests perform **complete replacement** of the entire entry. All fields must be provided:
+
 ```bash
 PUT /api/chat-embeddings/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+X-API-Key: your_api_key_here
+
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "entry_id": "550e8400-e29b-41d4-a716-446655440001",
+  "message_content": "Updated: I'm feeling more confident about my exam now",
+  "message_type": "user_message",
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "conversation_context": "User discussing improved academic confidence",
+  "primary_embedding": [0.1, 0.2, ...768 numbers],
+  "lightweight_embedding": [0.3, 0.4, ...384 numbers],
+  "text_length": 52,
+  "processing_time_ms": 145.0,
+  "model_version": "all-mpnet-base-v2",
+  "semantic_tags": ["confidence", "education", "improvement"],
+  "emotion_context": {
+    "dominant_emotion": "anticipation",
+    "intensity": 0.6,
+    "emotions": {
+      "joy": 0.4,
+      "sadness": 0.1,
+      "anger": 0.0,
+      "fear": 0.2,
+      "surprise": 0.1,
+      "disgust": 0.0,
+      "anticipation": 0.6,
+      "trust": 0.5
+    }
+  },
+  "entities_mentioned": {
+    "people": [],
+    "locations": [],
+    "organizations": ["university"]
+  },
+  "feature_vector": [0.1, 0.2, ...90 numbers],
+  "temporal_features": [0.3, 0.4, ...25 numbers],
+  "emotional_features": [0.5, 0.6, ...20 numbers],
+  "semantic_features": [0.7, 0.8, ...30 numbers],
+  "user_features": [0.9, 0.1, ...15 numbers],
+  "feature_completeness": 0.98,
+  "confidence_score": 0.91,
+  "temporal_context": {
+    "hour_of_day": 15,
+    "day_of_week": 2,
+    "is_weekend": false
+  }
+}
+```
+
+**Note**: This completely replaces the entry, preserving only the original `_id` and `created_at` fields.
+
+#### Update Embedding - Partial Update (PATCH)
+
+```bash
+PATCH /api/chat-embeddings/550e8400-e29b-41d4-a716-446655440000
 Content-Type: application/json
 X-API-Key: your_api_key_here
 
@@ -189,6 +272,8 @@ X-API-Key: your_api_key_here
   }
 }
 ```
+
+**Note**: PATCH is currently not implemented. Use PUT for complete replacement.
 
 #### Delete Embedding
 ```bash
@@ -259,7 +344,78 @@ GET /api/chat-embeddings/stats
 X-API-Key: your_api_key_here
 ```
 
-### Response Format
+## 🔄 Update Operations
+
+### Complete Replacement (PUT)
+
+PUT operations perform **complete replacement** of chat embeddings, following REST semantics:
+
+- **Requires all fields**: All required schema fields must be provided
+- **Preserves metadata**: Only `_id` and `created_at` are preserved from original entry
+- **Updates timestamp**: Sets new `updated_at` timestamp
+- **Validation**: Full schema validation ensures data integrity
+
+**Use Cases:**
+- Reprocessing messages with updated AI models
+- Correcting embedding vectors after model improvements
+- Updating complete conversation context
+
+### Partial Updates (PATCH)
+
+Currently not implemented. All updates must use PUT with complete data.
+
+**Future Implementation:** PATCH will allow updating specific fields without replacing the entire entry.
+
+## � Advanced Features
+
+### Auto-Collection Management
+
+The service automatically creates and configures AstraDB collections:
+
+- **Collection Creation**: Automatic `chat_embeddings` collection creation on first use
+- **Vector Indexing**: Proper vector indices for `primary_embedding` and `lightweight_embedding`
+- **Schema Validation**: Ensures collection structure matches application requirements
+- **Error Recovery**: Graceful handling of collection creation failures
+
+### Vector Dimension Validation
+
+Strict validation ensures data quality:
+
+```javascript
+// Required vector dimensions
+primary_embedding: 768 dimensions
+lightweight_embedding: 384 dimensions
+feature_vector: 90 dimensions
+temporal_features: 25 dimensions
+emotional_features: 20 dimensions
+semantic_features: 30 dimensions
+user_features: 15 dimensions
+```
+
+### Emotion Analysis Integration
+
+Built-in emotion context tracking:
+
+```javascript
+emotion_context: {
+  dominant_emotion: "one of 8 base emotions",
+  intensity: "0.0 to 1.0 scale",
+  emotions: {
+    joy: 0.0-1.0,
+    sadness: 0.0-1.0,
+    anger: 0.0-1.0,
+    fear: 0.0-1.0,
+    surprise: 0.0-1.0,
+    disgust: 0.0-1.0,
+    anticipation: 0.0-1.0,
+    trust: 0.0-1.0
+  }
+}
+```
+
+## �📋 Response Formats
+
+### Success Response Format
 All successful responses follow this format:
 ```json
 {

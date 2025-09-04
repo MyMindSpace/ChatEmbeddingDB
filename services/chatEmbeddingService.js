@@ -35,6 +35,15 @@ class ChatEmbeddingService {
         semantic_tags: embeddingData.semantic_tags || [],
         emotion_context: embeddingData.emotion_context,
         entities_mentioned: embeddingData.entities_mentioned || { people: [], locations: [], organizations: [] },
+        // New feature vector fields
+        feature_vector: embeddingData.feature_vector,
+        temporal_features: embeddingData.temporal_features,
+        emotional_features: embeddingData.emotional_features,
+        semantic_features: embeddingData.semantic_features,
+        user_features: embeddingData.user_features,
+        // New metadata fields
+        feature_completeness: embeddingData.feature_completeness,
+        confidence_score: embeddingData.confidence_score,
         temporal_context: embeddingData.temporal_context,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -80,6 +89,15 @@ class ChatEmbeddingService {
         semantic_tags: result.semantic_tags,
         emotion_context: result.emotion_context,
         entities_mentioned: result.entities_mentioned,
+        // New feature vector fields
+        feature_vector: result.feature_vector,
+        temporal_features: result.temporal_features,
+        emotional_features: result.emotional_features,
+        semantic_features: result.semantic_features,
+        user_features: result.user_features,
+        // New metadata fields
+        feature_completeness: result.feature_completeness,
+        confidence_score: result.confidence_score,
         temporal_context: result.temporal_context,
         created_at: result.created_at,
         updated_at: result.updated_at
@@ -89,61 +107,92 @@ class ChatEmbeddingService {
     }
   }
 
-  // Update chat embedding
-  async updateChatEmbedding(id, updateData) {
+  // Update chat embedding - REPLACES the entire entry
+  async updateChatEmbedding(id, newEmbeddingData) {
     try {
       await this.initialize();
 
-      const updateDoc = {
-        updated_at: new Date().toISOString()
-      };
+      // First check if the entry exists
+      const existingEntry = await this.collection.findOne({ _id: id });
       
-      // Map fields to database structure
-      if (updateData.primary_embedding) {
-        updateDoc.$vector = updateData.primary_embedding;
-      }
-      if (updateData.message_content) updateDoc.message_content = updateData.message_content;
-      if (updateData.message_type) updateDoc.message_type = updateData.message_type;
-      if (updateData.conversation_context) updateDoc.conversation_context = updateData.conversation_context;
-      if (updateData.lightweight_embedding) updateDoc.lightweight_embedding = updateData.lightweight_embedding;
-      if (updateData.text_length !== undefined) updateDoc.text_length = updateData.text_length;
-      if (updateData.processing_time_ms !== undefined) updateDoc.processing_time_ms = updateData.processing_time_ms;
-      if (updateData.model_version) updateDoc.model_version = updateData.model_version;
-      if (updateData.semantic_tags) updateDoc.semantic_tags = updateData.semantic_tags;
-      if (updateData.emotion_context) updateDoc.emotion_context = updateData.emotion_context;
-      if (updateData.entities_mentioned) updateDoc.entities_mentioned = updateData.entities_mentioned;
-      if (updateData.temporal_context) updateDoc.temporal_context = updateData.temporal_context;
-
-      const result = await this.collection.findOneAndUpdate(
-        { _id: id },
-        { $set: updateDoc },
-        { returnDocument: 'after' }
-      );
-
-      if (!result) {
+      if (!existingEntry) {
         throw new Error('Chat embedding not found');
       }
 
+      // Create completely new entry data, preserving only id and timestamps
+      const replacementDocument = {
+        _id: id,  // Keep the same ID
+        user_id: newEmbeddingData.user_id,
+        entry_id: newEmbeddingData.entry_id,
+        message_content: newEmbeddingData.message_content,
+        message_type: newEmbeddingData.message_type,
+        timestamp: newEmbeddingData.timestamp || new Date().toISOString(),
+        session_id: newEmbeddingData.session_id,
+        conversation_context: newEmbeddingData.conversation_context,
+        $vector: newEmbeddingData.primary_embedding, // AstraDB uses $vector for the main vector
+        lightweight_embedding: newEmbeddingData.lightweight_embedding,
+        text_length: newEmbeddingData.text_length,
+        processing_time_ms: newEmbeddingData.processing_time_ms,
+        model_version: newEmbeddingData.model_version,
+        semantic_tags: newEmbeddingData.semantic_tags || [],
+        emotion_context: newEmbeddingData.emotion_context,
+        entities_mentioned: newEmbeddingData.entities_mentioned || { people: [], locations: [], organizations: [] },
+        // Feature vector fields
+        feature_vector: newEmbeddingData.feature_vector,
+        temporal_features: newEmbeddingData.temporal_features,
+        emotional_features: newEmbeddingData.emotional_features,
+        semantic_features: newEmbeddingData.semantic_features,
+        user_features: newEmbeddingData.user_features,
+        // Metadata fields
+        feature_completeness: newEmbeddingData.feature_completeness,
+        confidence_score: newEmbeddingData.confidence_score,
+        temporal_context: newEmbeddingData.temporal_context,
+        created_at: existingEntry.created_at,  // Preserve original creation time
+        updated_at: new Date().toISOString()   // Update the modification time
+      };
+
+      // Replace the entire document
+      const result = await this.collection.replaceOne(
+        { _id: id },
+        replacementDocument
+      );
+
+      if (result.matchedCount === 0) {
+        throw new Error('Chat embedding not found');
+      }
+
+      // Fetch and return the replaced document
+      const updatedEntry = await this.collection.findOne({ _id: id });
+
       return {
-        id: result._id,
-        user_id: result.user_id,
-        entry_id: result.entry_id,
-        message_content: result.message_content,
-        message_type: result.message_type,
-        timestamp: result.timestamp,
-        session_id: result.session_id,
-        conversation_context: result.conversation_context,
-        primary_embedding: result.$vector,
-        lightweight_embedding: result.lightweight_embedding,
-        text_length: result.text_length,
-        processing_time_ms: result.processing_time_ms,
-        model_version: result.model_version,
-        semantic_tags: result.semantic_tags,
-        emotion_context: result.emotion_context,
-        entities_mentioned: result.entities_mentioned,
-        temporal_context: result.temporal_context,
-        created_at: result.created_at,
-        updated_at: result.updated_at
+        id: updatedEntry._id,
+        user_id: updatedEntry.user_id,
+        entry_id: updatedEntry.entry_id,
+        message_content: updatedEntry.message_content,
+        message_type: updatedEntry.message_type,
+        timestamp: updatedEntry.timestamp,
+        session_id: updatedEntry.session_id,
+        conversation_context: updatedEntry.conversation_context,
+        primary_embedding: updatedEntry.$vector,
+        lightweight_embedding: updatedEntry.lightweight_embedding,
+        text_length: updatedEntry.text_length,
+        processing_time_ms: updatedEntry.processing_time_ms,
+        model_version: updatedEntry.model_version,
+        semantic_tags: updatedEntry.semantic_tags,
+        emotion_context: updatedEntry.emotion_context,
+        entities_mentioned: updatedEntry.entities_mentioned,
+        // Feature vector fields
+        feature_vector: updatedEntry.feature_vector,
+        temporal_features: updatedEntry.temporal_features,
+        emotional_features: updatedEntry.emotional_features,
+        semantic_features: updatedEntry.semantic_features,
+        user_features: updatedEntry.user_features,
+        // Metadata fields
+        feature_completeness: updatedEntry.feature_completeness,
+        confidence_score: updatedEntry.confidence_score,
+        temporal_context: updatedEntry.temporal_context,
+        created_at: updatedEntry.created_at,
+        updated_at: updatedEntry.updated_at
       };
     } catch (error) {
       throw new Error(`Failed to update chat embedding: ${error.message}`);
@@ -236,6 +285,15 @@ class ChatEmbeddingService {
           semantic_tags: result.semantic_tags,
           emotion_context: result.emotion_context,
           entities_mentioned: result.entities_mentioned,
+          // New feature vector fields
+          feature_vector: result.feature_vector,
+          temporal_features: result.temporal_features,
+          emotional_features: result.emotional_features,
+          semantic_features: result.semantic_features,
+          user_features: result.user_features,
+          // New metadata fields
+          feature_completeness: result.feature_completeness,
+          confidence_score: result.confidence_score,
           temporal_context: result.temporal_context,
           similarity_score: result.$similarity,
           created_at: result.created_at,
@@ -269,6 +327,15 @@ class ChatEmbeddingService {
         semantic_tags: embeddingData.semantic_tags || [],
         emotion_context: embeddingData.emotion_context,
         entities_mentioned: embeddingData.entities_mentioned || { people: [], locations: [], organizations: [] },
+        // New feature vector fields
+        feature_vector: embeddingData.feature_vector,
+        temporal_features: embeddingData.temporal_features,
+        emotional_features: embeddingData.emotional_features,
+        semantic_features: embeddingData.semantic_features,
+        user_features: embeddingData.user_features,
+        // New metadata fields
+        feature_completeness: embeddingData.feature_completeness,
+        confidence_score: embeddingData.confidence_score,
         temporal_context: embeddingData.temporal_context,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -353,6 +420,15 @@ class ChatEmbeddingService {
           semantic_tags: result.semantic_tags,
           emotion_context: result.emotion_context,
           entities_mentioned: result.entities_mentioned,
+          // New feature vector fields
+          feature_vector: result.feature_vector,
+          temporal_features: result.temporal_features,
+          emotional_features: result.emotional_features,
+          semantic_features: result.semantic_features,
+          user_features: result.user_features,
+          // New metadata fields
+          feature_completeness: result.feature_completeness,
+          confidence_score: result.confidence_score,
           temporal_context: result.temporal_context,
           created_at: result.created_at,
           updated_at: result.updated_at

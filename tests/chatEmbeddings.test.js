@@ -37,6 +37,15 @@ describe('Chat Embedding API', () => {
       locations: [],
       organizations: ['university']
     },
+    // New feature vector fields
+    feature_vector: new Array(90).fill(0).map(() => Math.random() - 0.5),
+    temporal_features: new Array(25).fill(0).map(() => Math.random() - 0.5),
+    emotional_features: new Array(20).fill(0).map(() => Math.random() - 0.5),
+    semantic_features: new Array(30).fill(0).map(() => Math.random() - 0.5),
+    user_features: new Array(15).fill(0).map(() => Math.random() - 0.5),
+    // New metadata fields
+    feature_completeness: 0.95,
+    confidence_score: 0.87,
     temporal_context: {
       hour_of_day: 14,
       day_of_week: 1,
